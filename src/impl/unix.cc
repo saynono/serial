@@ -440,6 +440,32 @@ Serial::SerialImpl::reconfigurePort ()
   // activate settings
   ::tcsetattr (fd_, TCSANOW, &options);
 
+
+
+// Make sure that apple has the correct baudrate. 
+// Seems to be reset by ::tcsetattr (fd_, TCSANOW, &options);
+#ifdef __APPLE__
+      // On OS X, starting in Tiger, we can set a custom baud rate, as follows:
+    
+    if ((int) cfgetospeed(&options) != baudrate_) {
+        
+        printf("OSX Did you set stty? : stty ospeed %lu\n",baudrate_);
+        printf("OSX Did you set stty? : stty ispeed %lu\n",baudrate_);
+
+#ifndef IOSSIOSPEED
+#define IOSSIOSPEED    _IOW('T', 2, speed_t)
+#endif
+        
+        int rc;
+        unsigned int speed = baudrate_;
+        rc = ioctl(fd_, IOSSIOSPEED, &speed);
+        if (rc < 0) {
+            printf("ERROR: ioctl(IOSSIOSPEED)\n");
+        }
+        
+    }
+#endif
+
   // Update byte_time_ based on the new settings.
   uint32_t bit_time_ns = 1e9 / baudrate_;
   byte_time_ns_ = bit_time_ns * (1 + bytesize_ + parity_ + stopbits_);
