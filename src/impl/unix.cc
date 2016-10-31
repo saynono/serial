@@ -20,7 +20,8 @@
 #include <pthread.h>
 
 #if defined(__linux__)
-# include <linux/serial.h>
+#include <linux/serial.h>
+// #include <asm/termios.h>
 #endif
 
 #include <sys/select.h>
@@ -319,6 +320,9 @@ Serial::SerialImpl::reconfigurePort ()
       THROW (IOException, errno);
     }
 
+    // TODO addition by nono
+    // ser.c_cflag &= ~CBAUD;
+    // ser.c_cflag |= BOTHER;
     // set custom divisor
     ser.custom_divisor = ser.baud_base / static_cast<int> (baudrate_);
     // update flags
@@ -328,18 +332,25 @@ Serial::SerialImpl::reconfigurePort ()
     if (-1 == ioctl (fd_, TIOCSSERIAL, &ser)) {
       THROW (IOException, errno);
     }
+
+    baud = B38400;
 #else
     throw invalid_argument ("OS does not currently support custom bauds");
 #endif
   }
-  if (custom_baud == false) {
+
+
+  // if (custom_baud == false) {
 #ifdef _BSD_SOURCE
     ::cfsetspeed(&options, baud);
 #else
     ::cfsetispeed(&options, baud);
     ::cfsetospeed(&options, baud);
 #endif
-  }
+  // }else{
+  //   cfsetispeed(&options, B38400);
+  //   cfsetospeed(&options, B38400);
+  // }
 
   // setup char len
   options.c_cflag &= (tcflag_t) ~CSIZE;
